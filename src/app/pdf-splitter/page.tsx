@@ -1,76 +1,105 @@
 "use client";
 import { useState } from "react";
+import { PDFDocument } from "pdf-lib";
+import JSZip from "jszip";
 import Thumbnail from "@/components/Thumbnail";
 
 export default function Page() {
-  const [files, setFiles] = useState<string[]>([]); // Almacena los nombres de los archivos PDF
+  const [pages, setPages] = useState<{ name: string; blob: Blob }[]>([]);
+  const [zipName, setZipName] = useState<string>("");
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = event.target.files;
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
 
-    if (selectedFiles) {
-      const pdfFiles = Array.from(selectedFiles)
-        .filter((file) => file.type === "application/pdf") // Filtrar solo PDFs
-        .map((file) => file.name); // Obtener los nombres
-
-      if (pdfFiles.length === 0) {
-        alert("Por favor, selecciona solo archivos PDF.");
-        return;
-      }
-
-      setFiles((prevFiles) => [...prevFiles, ...pdfFiles]); // Agregar sin sobrescribir
+    if (!file || file.type !== "application/pdf") {
+      alert("Por favor, selecciona un archivo PDF válido.");
+      return;
     }
+
+    const originalName = file.name.replace(/\.pdf$/i, "");
+    setZipName(originalName);
+
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const totalPages = pdfDoc.getPageCount();
+
+    const newPages: { name: string; blob: Blob }[] = [];
+
+    for (let i = 0; i < totalPages; i++) {
+      const newPdf = await PDFDocument.create();
+      const [copiedPage] = await newPdf.copyPages(pdfDoc, [i]);
+      newPdf.addPage(copiedPage);
+
+      const pdfBytes = await newPdf.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const pageName = `${originalName}_p${i + 1}.pdf`;
+      newPages.push({ name: pageName, blob });
+    }
+
+    setPages(newPages);
   };
 
   const handleClick = () => {
     document.getElementById("fileInput")?.click();
   };
 
-  const handleRemove = (index: number) => {
-    setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
+  const removePage = (index: number) => {
+    setPages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const separateFiles = ()=>{
+  const downloadZip = async () => {
+    if (pages.length === 0) {
+      alert("No hay archivos para descargar.");
+      return;
+    }
 
-  }
+    const zip = new JSZip();
+
+    pages.forEach((page) => {
+      zip.file(page.name, page.blob);
+    });
+
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(zipBlob);
+    link.download = `${zipName || "documento"}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
-    <div className="grid grid-cols-2 gap-4 ml-2">
-      <div className="bg-green-500 text-white p-4 flex flex-col gap-4">
-        <h1>Contenido Columna 1</h1>
-
-        {/* Botón para añadir archivo */}
-        <button 
-          className="bg-white text-black px-4 py-2 rounded-md"
+    <div className="flex items-center justify-center w-full">
+      <div className="border w-[90%] text-white p-4 flex flex-col items-center gap-4 rounded-l">
+        <button
+          className="bg-white text-black px-4 py-2 rounded-md border-2 cursor-pointer"
           onClick={handleClick}
         >
           Añadir archivo +
         </button>
 
-        {/* Input oculto para seleccionar archivos */}
-        <input 
-          type="file" 
-          id="fileInput" 
-          className="hidden" 
-          accept="application/pdf" 
-          multiple 
+        <input
+          type="file"
+          id="fileInput"
+          className="hidden"
+          accept="application/pdf"
           onChange={handleFileSelect}
         />
 
-        {/* Componente Thumbnail que recibe los archivos y la función de eliminar */}
-        {/* <Thumbnail fkiles={files} onRemove={handleRemove} /> */}
-        {/* <Thumbnail files={files} onRemove={removeFile} /> */}
+        <Thumbnail
+          files={pages.map((p) => new File([p.blob], p.name))}
+          onRemove={removePage}
+        />
 
-        <button 
-          className="bg-white text-black px-4 py-2 rounded-md"
-          onClick={separateFiles}
-        >
-          Juntar archivos
-        </button>
-      </div>
-
-      <div className="bg-red-500 text-white p-4 flex items-center justify-center">
-        Contenido Columna 2
+        {pages.length > 0 && (
+          <button
+            className="bg-white text-black px-4 py-2 rounded-md border-2 cursor-pointer mt-4"
+            onClick={downloadZip}
+          >
+            Descargar archivos
+          </button>
+        )}
       </div>
     </div>
   );
