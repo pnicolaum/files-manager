@@ -82,17 +82,16 @@ export default function Page() {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4 ml-2">
-      <div className="bg-green-500 text-white p-4 flex flex-col gap-4">
-        <h1>Contenido Columna 1</h1>
-
+    <div className="flex items-center justify-center w-full">
+      <div className="border w-[90%] text-white p-4 flex flex-col items-center gap-4 rounded-l">
+  
         <button 
-          className="bg-white text-black px-4 py-2 rounded-md"
+          className="bg-white text-black px-4 py-2 rounded-md border-2 cursor-pointer"
           onClick={handleClick}
         >
           Añadir archivo +
         </button>
-
+  
         <input 
           type="file" 
           id="fileInput" 
@@ -100,21 +99,18 @@ export default function Page() {
           accept="application/pdf" 
           multiple 
           onChange={handleFileSelect}
-        />
-
+        />       
+  
         <Thumbnail files={files} onRemove={removeFile} />
-
+  
         <button 
-          className="bg-white text-black px-4 py-2 rounded-md"
+          className="bg-white text-black px-4 py-2 rounded-md border-2 cursor-pointer"
           onClick={bindFiles}
         >
           Juntar archivos
         </button>
       </div>
-
-      <div className="bg-red-500 text-white p-4 flex items-center justify-center">
-        Contenido Columna 2
-      </div>
     </div>
   );
+  
 }
