@@ -8,7 +8,7 @@ export default function Page() {
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
-
+    
     if (selectedFiles) {
       const pdfFiles = Array.from(selectedFiles).filter(
         (file) => file.type === "application/pdf"
@@ -18,10 +18,13 @@ export default function Page() {
         alert("Por favor, selecciona solo archivos PDF.");
         return;
       }
-
+  
       setFiles((prevFiles) => [...prevFiles, ...pdfFiles]);
     }
+    event.target.value = "";
+
   };
+  
 
   const handleClick = () => {
     document.getElementById("fileInput")?.click();
@@ -103,12 +106,14 @@ export default function Page() {
   
         <Thumbnail files={files} onRemove={removeFile} />
   
+        {files.length > 0 && (
         <button 
-          className="bg-white text-black px-4 py-2 rounded-md border-2 cursor-pointer"
+          className="bg-white text-black px-4 py-2 rounded-md border-2 cursor-pointer mt-4"
           onClick={bindFiles}
         >
           Juntar archivos
         </button>
+      )}
       </div>
     </div>
   );
